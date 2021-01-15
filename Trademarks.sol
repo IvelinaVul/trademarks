@@ -1,5 +1,7 @@
 //SPDX-License-Identifier: UNLICENESD
 pragma solidity >=0.7.0;
+//for returning string[]
+pragma experimental ABIEncoderV2;
 
 contract Administration {
 
@@ -75,19 +77,108 @@ contract Trademark{
     uint256 private startDate;
     // 5) срок на валидност - 10, 20, 30 год., завинаги
     uint8 private term;
-    // 6) цел (за собствено ползване / за продажба / за свободно разпространение) -> измисли име
+    // 6) цел (за собствено ползване / за продажба / за свободно разпространение)
     Purpose private purpose;
     // 7) описание: някво описание
     string private description;
-    //// 8) собственик(Object): Пешо Етеров
+    //// 8) собственик
     address payable private owner;
     //// 9) оторизирани сайтове: sth.com...
     string[] private authorizedSites;
     // 10) официален сайт: trademark.com
     string private officialSite;
     
-    //getter //setter
+    constructor(string memory _name, string memory _category, string memory _country, uint256 _startDate, uint8 _term, Purpose _purpose, string memory _description, address _owner, string memory _officialSite) {
+        name = _name;
+        category = _category;
+        country = _country;
+        startDate = _startDate;
+        term = _term;
+        purpose = _purpose;
+        description = _description;
+        owner = _owner;
+        officialSite = _officialSite;
+    }
+    
+    function getName() public view returns(string memory){
+        return name;
+    }
+    function getCategory() public view returns(string memory){
+        return category;
+    }
+    function setCategory(string memory _category) public {
+        category = _category;
+    }
+    function getCountry() public view returns(string memory){
+        return country;
+    }
+    /*
+    function setCountry(string memory _country) public {
+        country = _country;
+    }
+    */
+    function getStartDate() public view returns(uint256){
+        return startDate;
+    }
+    /*
+    function setStartDate(uint256 _startDate) public {
+        startDate = _startDate;
+    }
+    */
+    function getTerm() public view returns(uint8){
+        return term;
+    }
+    function setTerm(uint8 _term) public {
+        term = _term;
+    }
+    function getPurpose() public view returns(Purpose){
+        return purpose;
+    }
+    function setPurpose(Purpose _purpose) public {
+        purpose = _purpose;
+    }
+    function getDescription() public view returns(string memory){
+        return description;
+    }
+    function getDescription(string memory _description) public {
+        description = _description;
+    }
+    function getOwner() public view returns(address){
+        return owner;
+    }
+    function setOwner(address _owner) public {
+        owner = _owner;
+    }
+    function getAuthorizedSites() public view returns(string[] memory){
+        return authorizedSites;
+    }
+    function addAuthorizedSites(string memory _site) public {
+        authorizedSites.push(_site);
+    }
+    /*
+    function checkSiteIfAuthorized(string memory _site) public view returns(bool){
+        for(uint i = 0; i < authorizedSites.length; ++i ){
+            if() { //compare strings ?!?! // authorizedSites[i] and _site
+                return true;
+            }
+        }
+        return false;
+    }
+    */
+    function getOfficialSite() public view returns(string memory){
+        return officialSite;
+    }
+    function setOfficialSite(string memory _officialSite) public {
+        officialSite = _officialSite;
+    }
 }
 
 //за собствено ползване / за продажба / за свободно разпространение
-enum Purpose { privateUsage, sale, freeDistribution }
+enum Purpose {
+    //за собствено ползване
+    privateUsage,
+    //за продажба
+    sale,
+    //за свободно разпространение
+    freeDistribution
+}
