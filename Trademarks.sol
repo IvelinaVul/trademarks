@@ -82,7 +82,7 @@ contract Trademark{
     // 7) описание: някво описание
     string private description;
     //// 8) собственик
-    address payable private owner;
+    address private owner;
     //// 9) оторизирани сайтове: sth.com...
     string[] private authorizedSites;
     // 10) официален сайт: trademark.com
