@@ -40,24 +40,89 @@ contract Administration {
     //function participateInAuction(string name) external{
         //дали има активен търга
     //}
+     function sellTrademark(Trademark _trademark, address _highestBidder,uint256 _highestPrice) public{
+    		//todo
+    }
 }
 
 contract Auction{
-    //event за кой е спечелил
-    //търг, без да знаеш най-висока цена
     
-    Trademark private trademark; //или само name
-    //измисли си тип за дата
-    uint256 private startDate;
-    uint256  private endDate;
+    Trademark private trademark;
+    address private owner;
     
-    uint256 private initialPrice;
-    uint256 private highestPrice;
-    address private highestBidder;
+    uint8 private maxBids;										//	максимум наднавания за акциона
+    uint8 private currentBids;								//	Броят на наддаванията в момента
     
-    //по-скоро без
-    //mapping(address => uint256) private bets;
-    //address[] private participants;
+    uint256 private minBidAmount;							//	Минимална сума за надване
+    uint256 private initialPrice;							//	Стартова цена
+
+    uint256 private highestPrice;							//	Цената в момента, която е най-висока
+     address payable private highestBidder;		  //	Текущия адрес с най-висока цена
+    
+    constructor(Trademark  _trademark, address payable _owner, uint8  _maxBids, uint256  _minBidAmount, uint256  _initialPrice) {
+        trademark = _trademark;
+        owner = _owner;  
+        maxBids = _maxBids;
+        minBidAmount = _minBidAmount;
+        initialPrice = _initialPrice;
+        highestPrice = _initialPrice;
+        highestBidder = _owner;
+    }
+    
+    event StartAuction(string indexed trademarkName, address indexed owner, uint256 indexed highestPrice, uint256  minBidAmount);
+    event AuctionResult(string indexed trademarkName, address indexed oldOwner, address indexed newOwner,uint256 soldFor);
+
+   // modifier isOwner() {
+   //     require(msg.sender == owner, "Caller is not owner!");
+   //     _;
+   // }
+    
+    function start() public {
+    		emit StartAuction(trademark.getName(), owner, highestPrice, minBidAmount); 
+    }
+    
+    function closeAuction() public{
+    		if (owner == highestBidder) {
+        		highestPrice = 0;
+        }
+        else {
+        // 		Administration.sellTrademark(trademark, highestBidder, highestPrice);
+        }    
+        emit AuctionResult(trademark.getName(), owner, highestBidder, highestPrice);
+    }
+    
+    function bid(address payable bidder, uint256 bidAmount) public payable {
+        if (minBidAmount <= (bidAmount - highestPrice)) {
+           	returnMoneyTo(highestBidder, highestPrice);
+           	highestPrice = bidAmount;
+           	highestBidder = bidder;
+            currentBids++;
+        }
+        
+        if (currentBids == maxBids) {
+        // 		Administration.sellTrademark(trademark, highestBidder, highestPrice);
+        }
+   	}
+    
+    function returnMoneyTo(address payable _toAddress, uint256 _amount) public payable{
+    	 _toAddress.transfer(_amount);	 
+    } 
+   
+   
+   
+   
+   
+   
+   // sendToAdministrator(oldOwner, currnetOwner, priceAmount);
+    // Administration.changeOwner
+    
+    
+    // todo фукнция getHighestPrice
+    // todo фукнция closeAction()isOwner
+    // event за кой е спечелил
+    // todo require(suma<visokata)
+    // payable ->
+    
     
     //Стартиране -> начална цена, начална дата, крайна дата -> event //стария собственик - проверка
     //Участие -> само се предлага сума, не се плаща
