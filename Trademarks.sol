@@ -17,11 +17,40 @@ contract Administration {
     
     //Рали
     //проверка дали си собственик и дали датата е започнала
+	    //Рали
+    modifier isOwnerTrademark(string memory trademarkName) {
+        require(msg.sender == namesTrademarks[trademarkName].getOwner(),"Not an owoner of the trademark!");
+         _;
+    }
+    
+    function stillNotStartDate(string memory trademarkName) public view returns(bool) {
+        if(block.timestamp < namesTrademarks[trademarkName].getStartDate()) {
+            return true;
+        }
+        return false;
+    }
+    //проверка дали си собственик и дали датата е започнала
+    
     //Отказване от патента (преди датата на стартиране)
+    function giveUpOnPatent(string memory trademarkName) external payable isOwnerTrademark(trademarkName){ //they pay to give up,right
+        require(stillNotStartDate(trademarkName),"The start date has already come");
+        namesTrademarks[trademarkName].setOwner(address(0));
+    }
+
     //Рали
     //Проверка дали търговецът има права по линк на сайт
+  //  function hasRights(address user, string memory trademarkName,string memory authorizedSites) external payable returns (bool) {
+   //     for(uint i = 0; i< namesTrademarks[trademarkName].getAuthorizedSites(); ++i) {
+  //          if()
+  //      } will do it soon
+  //  }
     //Рали
     //Добавяне на сайт за продажба
+    function addAuthorizedSite(string memory trademarkName,string memory site) external payable isOwnerTrademark(trademarkName){
+        trademarks[trademarkName].addAuthorizedSites(trademarkName);
+       
+    }
+ 
 
     mapping (string => Trademark) private trademarksNames;	        // To do Fixing
     string[] private names;  									    // To do Fixing
