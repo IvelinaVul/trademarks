@@ -15,16 +15,16 @@ contract Administration {
     //Маги
     //Редактиране на регистрацията на марката (собственик, дата, срок, описание, категория - отделни функции за потребител; заплащане)
     
-    //Рали
+     //Рали
     //проверка дали си собственик и дали датата е започнала
 	    //Рали
     modifier isOwnerTrademark(string memory trademarkName) {
-        require(msg.sender == namesTrademarks[trademarkName].getOwner(),"Not an owoner of the trademark!");
+        require(msg.sender == trademarksNames[trademarkName].getOwner(),"Not an owner of the trademark!");
          _;
     }
     
     function stillNotStartDate(string memory trademarkName) public view returns(bool) {
-        if(block.timestamp < namesTrademarks[trademarkName].getStartDate()) {
+        if(block.timestamp < trademarksNames[trademarkName].getStartDate()) {
             return true;
         }
         return false;
@@ -32,10 +32,10 @@ contract Administration {
     //проверка дали си собственик и дали датата е започнала
     
     //Отказване от патента (преди датата на стартиране)
-    function giveUpOnPatent(string memory trademarkName) external payable isOwnerTrademark(trademarkName){ //they pay to give up,right
-        require(stillNotStartDate(trademarkName),"The start date has already come");
-        namesTrademarks[trademarkName].setOwner(address(0));
-    }
+   function giveUpOnPatent(string memory trademarkName) external payable isOwnerTrademark(trademarkName){ //they pay to give up,right
+       require(stillNotStartDate(trademarkName),"The start date has already come");
+       trademarksNames[trademarkName].setOwner(address(0));
+   }
 
     //Рали
     //Проверка дали търговецът има права по линк на сайт
@@ -46,10 +46,6 @@ contract Administration {
   //  }
     //Рали
     //Добавяне на сайт за продажба
-    function addAuthorizedSite(string memory trademarkName,string memory site) external payable isOwnerTrademark(trademarkName){
-        trademarks[trademarkName].addAuthorizedSites(trademarkName);
-       
-    }
  
 
     mapping (string => Trademark) private trademarksNames;	        // To do Fixing
