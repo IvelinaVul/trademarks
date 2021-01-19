@@ -74,15 +74,16 @@ contract Administration {
     }
   
     constructor() {
-        owner = msg.sender;
-        string memory magi = "magi";
-        Trademark Trademark = new Trademark(magi, magi, magi, 1, 1, Purpose.sale, magi, owner, magi);
-        trademarksNames[magi] = Trademark;
+        //owner = msg.sender;
+        //string memory magi = "magi";
+        //Trademark trade = new Trademark(magi, magi, magi, 1, 1, Purpose.sale, magi, owner, magi);
+        //trademarksNames[magi] = trade;
     }
   
     function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount, uint8 maxBids) public isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) payable{
     	Trademark trademark = trademarksNames[trademarkName];
-        activeAuctions[trademarkName] = new Auction(trademark, payable(trademark.getOwner()), maxBids, minBidAmount, initialPrice);
+    	Auction auc = new Auction(trademark, payable(trademark.getOwner()), maxBids, minBidAmount, initialPrice);
+    	activeAuctions[trademarkName] = auc;
         activeAuctionNames.push(trademarkName);
     }
     
