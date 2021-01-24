@@ -18,10 +18,10 @@ contract Administration {
      //Рали
     //проверка дали си собственик и дали датата е започнала
 	    //Рали
-    modifier isOwnerTrademark(string memory trademarkName) {
-        require(msg.sender == trademarksNames[trademarkName].getOwner(),"Not an owner of the trademark!");
-         _;
-    }
+    //modifier isOwnerTrademark(string memory trademarkName) {
+        //require(msg.sender == trademarksNames[trademarkName].getOwner(),"Not an owner of the trademark!");
+        //_;
+    //}
     
     function stillNotStartDate(string memory trademarkName) public view returns(bool) {
         if(block.timestamp < trademarksNames[trademarkName].getStartDate()) {
@@ -74,6 +74,7 @@ contract Administration {
     }
   
     constructor() {
+        //comment..
         //owner = msg.sender;
         //string memory magi = "magi";
         //Trademark trade = new Trademark(magi, magi, magi, 1, 1, Purpose.sale, magi, owner, magi);
@@ -81,9 +82,9 @@ contract Administration {
     }
   
     function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount, uint8 maxBids) public isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) payable{
-    	Trademark trademark = trademarksNames[trademarkName];
-    	Auction auc = new Auction(trademark, payable(trademark.getOwner()), maxBids, minBidAmount, initialPrice);
-    	activeAuctions[trademarkName] = auc;
+     	Trademark trademark = trademarksNames[trademarkName];
+     	Auction auc = new Auction(trademark, payable(trademark.getOwner()), maxBids, minBidAmount, initialPrice);
+     	activeAuctions[trademarkName] = auc;
         activeAuctionNames.push(trademarkName);
     }
     
@@ -167,8 +168,14 @@ contract Auction{
     		trademark.setOwner(highestBidder); 
     }
     
-    function start() public {
-    		emit StartAuction(trademark.getName(), owner, highestPrice, minBidAmount); 
+    function start() public  {
+         
+    	emit StartAuction(trademark.getName(), owner, highestPrice, minBidAmount); 
+    }
+    
+    function getTrademarkName() public view returns (string memory){
+        
+        return trademark.getName();
     }
     
     function closeAuction() public {
@@ -187,7 +194,7 @@ contract Auction{
     
     function bid(address payable bidder, uint256 bidAmount) public payable {
         if (minBidAmount <= (bidAmount - highestPrice)) {
-           	payTo(highestBidder, highestPrice);
+            payTo(highestBidder, highestPrice);
            	highestPrice = bidAmount;
            	highestBidder = bidder;
             currentBids++;
@@ -211,11 +218,6 @@ contract Auction{
     	 return fee;
     }
 
-     
-   	// sendToAdministrator(oldOwner, currnetOwner, priceAmount);
-    // Administration.changeOwner
-    
-    
     
     
     //Стартиране -> начална цена, начална дата, крайна дата -> event //стария собственик - проверка
