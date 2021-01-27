@@ -4,43 +4,120 @@ pragma solidity >=0.7.0;
 pragma experimental ABIEncoderV2;
 
 contract Administration {
-    struct Trademark{
-        // 1) името: trademarks  ?? само име или и фрази
+    struct Trademark {
+        bool exists;
         string name;
-        // 2) категория: продукт / услуги
-        string category;
-        // 3) държава: България/Други
-        string country;
-        // 4) начална дата на патента: 06.01.2012 -> повери типа
+        uint8 term;                 //в години
         uint256 startDate;
-        // 5) срок на валидност - 10, 20, 30 год., завинаги
-        uint8 term;
-        // 6) цел (за собствено ползване / за продажба / за свободно разпространение)
-        Purpose purpose;
-        // 7) описание: някво описание
-        string description;
-        //// 8) собственик
         address owner;
-        //// 9) оторизирани сайтове: sth.com...
-        string[] authorizedSites;
-        // 10) официален сайт: trademark.com
+        string category;            //продукт / услуги
+        string country;
+        string description;
         string  officialSite;
+        Purpose purpose;            //цел: за собствено ползване / за продажба / за свободно разпространение
+        string[] authorizedSites;
     }
-    mapping (string => Trademark) private trademarksNames;	        				// To do Fixing
-    string[] private names;  									    // To do Fixing
-    Trademark[] private trademarks;
-    uint256 private totalGains;
     
-    //оправяйте се!!! -> O(lgn)
-    mapping (string => Auction) activeAuctions;
-    string[] private activeAuctionNames;  //trademarksWithActiveAuction
+    uint256 constant private priceByYear = 30000000000000000; //40$
+    uint256 constant private priceForUpdate = 3000000000000000; //4$
+    
     address payable private owner;
-      
+    
+    string[] private trademarks;
+    string[] private activeAuctionNames;  //trademarksWithActiveAuction
+    
+    mapping (string => Trademark) private trademarksNames;
+    mapping (string => Auction) activeAuctions;
+    
+    constructor() {
+        owner = msg.sender;
+    }
+    
     modifier isOwnerTrademark(string memory trademarkName) {
         require(msg.sender == trademarksNames[trademarkName].owner, "Caller is not owner!");
         _;
     }
     
+    modifier nameAvailable(string memory name) {
+    	require(trademarksNames[name].exists == false, "The name already exists!");
+        _;
+    }
+    
+    // modifier trademarkRegistered(string memory name) {
+    // 	require(trademarksNames[name].exists, "The name already exists!");
+    //     _;
+    // }
+    
+    modifier futureDate(uint256 date) {
+        require(block.timestamp <= date, "Invalid date!");
+        _;
+    }
+    
+    modifier enoughMoney(uint256 amount) {
+        require(msg.value >= amount, "Not enough money!");
+        _; 
+    }
+    
+    function registerNewTrademark(string memory _name, string memory _category, string memory _country, uint256 _startDate, uint8 _term, Purpose _purpose,
+                                    string memory _description, string memory _officialSite)
+                                    external payable nameAvailable(_name) futureDate(_startDate) enoughMoney(_term * priceByYear) {
+                                        
+        Trademark memory newTrademark;
+        newTrademark.exists = true;
+        newTrademark.name = _name;
+        newTrademark.category = _category;
+        newTrademark.country = _country;
+        newTrademark.startDate = _startDate;
+        newTrademark.term = _term;
+        newTrademark.purpose = _purpose;
+        newTrademark.description = _description;
+        newTrademark.owner = msg.sender;
+        newTrademark.officialSite = _officialSite;
+        
+        trademarksNames[_name] = newTrademark;
+        trademarks.push(_name);
+    }
+    
+    modifier futureStartDateTrademark(string memory name) {
+        require(block.timestamp <= trademarksNames[name].startDate, "Not enough money!");
+        _; 
+    }
+    
+    function extendTerm(string memory trademarkName, uint8 newTerm) external payable isOwnerTrademark(trademarkName) enoughMoney(newTerm * priceByYear) {
+        trademarksNames[trademarkName].term += newTerm;
+    }
+    
+    function updateData(string memory trademarkName, uint256 newStartDate) external payable
+                            isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) futureDate(newStartDate) futureStartDateTrademark(trademarkName) {
+        trademarksNames[trademarkName].startDate = newStartDate;
+    }
+    
+    function updateDescription(string memory trademarkName, string memory newDescription) external payable
+                            isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
+        trademarksNames[trademarkName].description = newDescription;
+    }
+    
+    function updateCategory(string memory trademarkName, string memory newCategory) external payable
+                            isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
+        trademarksNames[trademarkName].category = newCategory;
+    }
+    
+    function updateOfficialSite(string memory trademarkName, string memory newSite) external payable
+                            isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
+        trademarksNames[trademarkName].officialSite = newSite;
+    }
+    
+    function checkAvailableTrademarkName(string memory name) external view returns (bool) {
+            return trademarksNames[name].exists == false;
+    }
+    
+    function daysUntilAvailableTrademarkName(string memory name) external view returns (uint256) {
+            if(trademarksNames[name].exists == false) {
+                return 0;
+            }
+            return trademarksNames[name].startDate / 60 / 60 / 24 + trademarksNames[name].term * 365;
+    }
+        
     modifier isActiveAuction(string memory trademarkName) {
     		require(activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
         _;
@@ -51,19 +128,12 @@ contract Administration {
         _;
     }
   
-    constructor() {
-        //comment..
-        //owner = msg.sender;
-        //string memory magi = "magi";
-        //Trademark trade = new Trademark(magi, magi, magi, 1, 1, Purpose.sale, magi, owner, magi);
-        //trademarksNames[magi] = trade;
-    }
-  
     function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) public isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) payable{
      	Trademark memory trademark = trademarksNames[trademarkName];
      	Auction auction = new Auction(trademark.name, payable(trademark.owner), minBidAmount, initialPrice);
      	activeAuctions[trademarkName] = auction;
         activeAuctionNames.push(trademarkName);
+        auction.start();
     }
     
     function compareStrings(string memory a, string memory b) private pure returns (bool) {
@@ -97,7 +167,6 @@ contract Administration {
         address highestBidder=auction.getHighestBidder();
         Trademark memory trademark=trademarksNames[trademarkName];
         
-        totalGains += fee;
         if (fee > 0) {
   			owner.transfer(fee);
         }
@@ -105,12 +174,11 @@ contract Administration {
     	payTo(payable(trademark.owner), highestPrice - fee);
     	trademark.owner=highestBidder;
         deleteAuction(trademarkName);
-         
     }
-     function payTo(address payable toAddress, uint256 amount) public payable {
+    
+    function payTo(address payable toAddress, uint256 amount) public payable {
     	 toAddress.transfer(amount);	 
     }
-
     
     function participateInAuction(string memory trademarkName) external payable { 
         Auction auction = activeAuctions[trademarkName];
@@ -119,22 +187,11 @@ contract Administration {
             closeAuction(trademarkName);
         }
     } 
-    //Маги
-    //Регистриране на нова търговска марка -> O(1) / const -> проверка дали си платил достатъчно
-        //не за сега: ако си платил по-малко, да може да доплатиш разликата, не да плащаш цялата сума наново
-        
-    //Маги
-    //Проверка дали дадено марка е свободна и от/до кога -> O(1) / const
-        //дали?
-        //от кога?
-    //Маги
-    //Редактиране на регистрацията на марката (собственик, дата, срок, описание, категория - отделни функции за потребител; заплащане)
     
-     //Рали
+    //Рали
     //проверка дали си собственик и дали датата е започнала
-	    //Рали
     //modifier isOwnerTrademark(string memory trademarkName) {
-        //require(msg.sender == trademarksNames[trademarkName].getOwner(),"Not an owner of the trademark!");
+        //require(msg.sender == trademarksNames[trademarkName].оwner,"Not an owner of the trademark!");
         //_;
     //}
     
@@ -144,38 +201,34 @@ contract Administration {
         }
         return false;
     }
-    //проверка дали си собственик и дали датата е започнала
     
     //Отказване от патента (преди датата на стартиране)
    function giveUpOnPatent(string memory trademarkName) external payable isOwnerTrademark(trademarkName){ //they pay to give up,right
        require(stillNotStartDate(trademarkName),"The start date has already come");
        trademarksNames[trademarkName].owner=address(0);
-       
    }
 
     //Рали
     //Проверка дали търговецът има права по линк на сайт
-  //  function hasRights(address user, string memory trademarkName,string memory authorizedSites) external payable returns (bool) {
-   //     for(uint i = 0; i< namesTrademarks[trademarkName].getAuthorizedSites(); ++i) {
-  //          if()
-  //      } will do it soon
-  //  }
+    //  function hasRights(address user, string memory trademarkName,string memory authorizedSites) external payable returns (bool) {
+    //     for(uint i = 0; i< namesTrademarks[trademarkName].getAuthorizedSites(); ++i) {
+    //          if()
+    //      } will do it soon
+    //  }
+    
     //Рали
     //Добавяне на сайт за продажба
 }
+
 contract Auction{
     string private trademarkName;
     address private owner;
-
-    // uint8 private maxBids;									//	максимум наднавания за акциона
-    // uint8 private currentBids;								//	Броят на наддаванията в момента
     
-    uint256 private minBidAmount;							//	Минимална сума за надване
-    uint256 private initialPrice;							//	Стартова цена
+    uint256 private minBidAmount;							    //	Минимална сума за надване
+    uint256 private initialPrice;							    //	Стартова цена
 
-    uint256 private highestPrice;							//	Цената в момента, която е най-висока
-    address payable private highestBidder;		            //	Текущия адрес с най-висока цена
-    // uint256 private fee;
+    uint256 private highestPrice;							    //	Цената в момента, която е най-висока
+    address payable private highestBidder;		                //	Текущия адрес с най-висока цена
     bool private isActiveNow;
     
     modifier isAuctionActive() {
@@ -200,13 +253,13 @@ contract Auction{
     		return isActiveNow;
     }
     
-   function getHighestBidder() public view returns(address){
+    function getHighestBidder() public view returns(address){
        return highestBidder;
     }
     
     function start() public  {
          isActiveNow=true;
-    	emit StartAuction(trademarkName, owner, highestPrice, minBidAmount); 
+    	 emit StartAuction(trademarkName, owner, highestPrice, minBidAmount); 
     }
     
     
@@ -243,19 +296,10 @@ contract Auction{
     function getHighestPrice() external view returns(uint256){
     		return highestPrice;
     }
-    
-    //Стартиране -> начална цена, начална дата, крайна дата -> event //стария собственик - проверка
-    //Участие -> само се предлага сума, не се плаща
-    //Обявяване на победител -> предложил най-висока цена
-    //Смяна на собственика -> вика от administration превод на сумата на собственика и процент/такса за нас
 }
 
-//за собствено ползване / за продажба / за свободно разпространение
 enum Purpose {
-    //за собствено ползване
-    privateUsage,
-    //за продажба
-    sale,
-    //за свободно разпространение
-    freeDistribution
+    privateUsage,          //за собствено ползване
+    sale,                  //за продажба
+    freeDistribution       //за свободно разпространение
 }
