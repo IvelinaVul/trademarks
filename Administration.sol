@@ -27,6 +27,7 @@ contract Administration {
     
     uint256 constant private priceByYear = 30000000000000000; //40$
     uint256 constant private priceForUpdate = 3000000000000000; //4$
+    uint constant private priceForGiveUp = 11000000000000000; //15$
     
     address payable private owner;
     
@@ -206,35 +207,58 @@ contract Administration {
         Auction auction = activeAuctions[trademarkName];
         auction.bid(msg.sender, msg.value);
     } 
-    
-    //Рали
-    //проверка дали си собственик и дали датата е започнала
-    //modifier isOwnerTrademark(string memory trademarkName) {
-        //require(msg.sender == trademarksNames[trademarkName].оwner,"Not an owner of the trademark!");
-        //_;
-    //}
-    
-    function stillNotStartDate(string memory trademarkName) public view returns(bool) {
-        if(block.timestamp < trademarksNames[trademarkName].startDate) {
-            return true;
-        }
-        return false;
+	
+	  modifier isTrademarkRegistered(string memory trademarkName) {
+        require(trademarksNames[trademarkName].exists == true, "The trademark is not registered!");
+        _;
     }
     
-    //Отказване от патента (преди датата на стартиране)
-   function giveUpOnPatent(string memory trademarkName) external payable isOwnerTrademark(trademarkName){ //they pay to give up,right
-        require(stillNotStartDate(trademarkName),"The start date has already come");
-        trademarksNames[trademarkName].owner=address(0);
+    
+    function isTrademarkInDate(string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns(bool){
+        if(block.timestamp < trademarksNames[trademarkName].startDate) {
+            return false;
+        }
+        return true;
+    }
+    
+    function giveUpOnPatent(string memory trademarkName) 
+                            external payable isOwnerTrademark(trademarkName) futureDate(trademarksNames[trademarkName].startDate) enoughMoney(priceForGiveUp) {
+        delete trademarksNames[trademarkName];
+        string[] memory copyTrademarkNames = new string[](trademarks.length - 1);
+        uint j = 0;
+        for (uint i = 0; i < trademarks.length; i++) {
+         		if (!compareStrings(trademarks[i], trademarkName)) {
+                    copyTrademarkNames[j] = trademarks[i];
+            		j++;
+            }
+        }
+        delete trademarks;
+        for (uint i = 0; i < copyTrademarkNames.length; i++) {
+         		trademarks.push(copyTrademarkNames[i]);
+        }
+        delete copyTrademarkNames;
+        owner.transfer(msg.value);
    }
 
-    //Рали
-    //Проверка дали търговецът има права по линк на сайт
-    //  function hasRights(address user, string memory trademarkName,string memory authorizedSites) external payable returns (bool) {
-    //     for(uint i = 0; i< namesTrademarks[trademarkName].getAuthorizedSites(); ++i) {
-    //          if()
-    //      } will do it soon
-    //  }
+
+      function isSiteAuthorized(string memory site,string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns (bool){
+       for(uint i = 0; i < trademarksNames[trademarkName].authorizedSites.length; ++i) {
+           if(compareStrings(trademarksNames[trademarkName].authorizedSites[i],site)) {
+               return true;
+           }
+       }
+       return false;
+    }
     
-    //Рали
-    //Добавяне на сайт за продажба
+
+    modifier isSiteAlreadyAuthorized(string memory site,string memory trademarkName) {
+        require(this.isSiteAuthorized(site,trademarkName)==false, "The site has been authorized!");
+        _;
+    }
+
+    function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) 
+                        external payable isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
+        trademarksNames[trademarkName].authorizedSites.push(authorizedSite);
+        owner.transfer(msg.value);
+    }
 }
