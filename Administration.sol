@@ -3,7 +3,7 @@ pragma solidity >=0.7.0;
 //for returning string[]
 pragma experimental ABIEncoderV2;
 
-import "Auction.sol";
+import "./Auction.sol";
 
 contract Administration {
     struct Trademark {
@@ -83,6 +83,16 @@ contract Administration {
         
         trademarksNames[_name] = newTrademark;
         trademarks.push(_name);
+        
+        owner.transfer(msg.value);
+    }
+    
+    function getPriceByYear() external pure returns (uint256) {
+        return priceByYear;
+    }
+    
+    function getPriceForUpdate() external pure returns (uint256) {
+        return priceForUpdate;
     }
     
     modifier futureStartDateTrademark(string memory name) {
@@ -92,46 +102,51 @@ contract Administration {
     
     function extendTerm(string memory trademarkName, uint8 newTerm) external payable isOwnerTrademark(trademarkName) enoughMoney(newTerm * priceByYear) {
         trademarksNames[trademarkName].term += newTerm;
+        owner.transfer(msg.value);
     }
     
     function updateData(string memory trademarkName, uint256 newStartDate) external payable
                             isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) futureDate(newStartDate) futureStartDateTrademark(trademarkName) {
         trademarksNames[trademarkName].startDate = newStartDate;
+        owner.transfer(msg.value);
     }
     
     function updateDescription(string memory trademarkName, string memory newDescription) external payable
                             isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
         trademarksNames[trademarkName].description = newDescription;
+        owner.transfer(msg.value);
     }
     
     function updateCategory(string memory trademarkName, string memory newCategory) external payable
                             isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
         trademarksNames[trademarkName].category = newCategory;
+        owner.transfer(msg.value);
     }
     
     function updateOfficialSite(string memory trademarkName, string memory newSite) external payable
                             isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
         trademarksNames[trademarkName].officialSite = newSite;
+        owner.transfer(msg.value);
     }
     
     function checkAvailableTrademarkName(string memory name) external view returns (bool) {
-            return trademarksNames[name].exists == false;
+        return trademarksNames[name].exists == false;
     }
     
     function daysUntilAvailableTrademarkName(string memory name) external view returns (uint256) {
-            if(trademarksNames[name].exists == false) {
-                return 0;
-            }
-            return trademarksNames[name].startDate / 60 / 60 / 24 + trademarksNames[name].term * 365;
+        if(trademarksNames[name].exists == false) {
+            return 0;
+        }
+        return trademarksNames[name].startDate / 60 / 60 / 24 + trademarksNames[name].term * 365;
     }
         
     modifier isActiveAuction(string memory trademarkName) {
-    		require(address(activeAuctions[trademarkName])!=address(0) && activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
+    	require(address(activeAuctions[trademarkName])!=address(0) && activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
         _;
     }
     
     modifier isNotActiveAuction(string memory trademarkName) {
-    		require(address(activeAuctions[trademarkName])==address(0) || activeAuctions[trademarkName].isActive()  == false, "There is no active auction with that name!");
+    	require(address(activeAuctions[trademarkName])==address(0) || activeAuctions[trademarkName].isActive()  == false, "There is no active auction with that name!");
         _;
     }
   
@@ -208,8 +223,8 @@ contract Administration {
     
     //Отказване от патента (преди датата на стартиране)
    function giveUpOnPatent(string memory trademarkName) external payable isOwnerTrademark(trademarkName){ //they pay to give up,right
-       require(stillNotStartDate(trademarkName),"The start date has already come");
-       trademarksNames[trademarkName].owner=address(0);
+        require(stillNotStartDate(trademarkName),"The start date has already come");
+        trademarksNames[trademarkName].owner=address(0);
    }
 
     //Рали
