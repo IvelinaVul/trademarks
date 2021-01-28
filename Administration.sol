@@ -3,6 +3,8 @@ pragma solidity >=0.7.0;
 //for returning string[]
 pragma experimental ABIEncoderV2;
 
+import "Auction.sol";
+
 contract Administration {
     struct Trademark {
         bool exists;
@@ -16,6 +18,11 @@ contract Administration {
         string  officialSite;
         Purpose purpose;            //цел: за собствено ползване / за продажба / за свободно разпространение
         string[] authorizedSites;
+    }
+    enum Purpose {
+        privateUsage,          //за собствено ползване
+        sale,                  //за продажба
+        freeDistribution       //за свободно разпространение
     }
     
     uint256 constant private priceByYear = 30000000000000000; //40$
@@ -54,7 +61,7 @@ contract Administration {
     }
     
     modifier enoughMoney(uint256 amount) {
-        require(msg.value >= amount, "Not enough money!");
+        require(msg.value >= amount, "Not enough money!"); 
         _; 
     }
     
@@ -128,9 +135,10 @@ contract Administration {
         _;
     }
   
-    function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) public isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) payable{
+    function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) external isOwnerTrademark(trademarkName)  {
+        //fix isNotActiveAuction not working
      	Trademark memory trademark = trademarksNames[trademarkName];
-     	Auction auction = new Auction(trademark.name, payable(trademark.owner), minBidAmount, initialPrice);
+     	Auction auction = new Auction(trademark.name, trademark.owner, minBidAmount, initialPrice);
      	activeAuctions[trademarkName] = auction;
         activeAuctionNames.push(trademarkName);
         auction.start();
@@ -158,7 +166,7 @@ contract Administration {
         delete copyActiveAuctionNames;
     }
     
-    function closeAuction(string memory trademarkName) public isActiveAuction(trademarkName) isOwnerTrademark(trademarkName) {
+    function closeAuction(string memory trademarkName) external isActiveAuction(trademarkName) isOwnerTrademark(trademarkName) {
         Auction auction = activeAuctions[trademarkName];
         auction.close();
         uint256 highestPrice=auction.getHighestPrice();
@@ -183,9 +191,6 @@ contract Administration {
     function participateInAuction(string memory trademarkName) external payable { 
         Auction auction = activeAuctions[trademarkName];
         auction.bid(msg.sender, msg.value);
-        if(!auction.isActive()){
-            closeAuction(trademarkName);
-        }
     } 
     
     //Рали
@@ -218,88 +223,4 @@ contract Administration {
     
     //Рали
     //Добавяне на сайт за продажба
-}
-
-contract Auction{
-    string private trademarkName;
-    address private owner;
-    
-    uint256 private minBidAmount;							    //	Минимална сума за надване
-    uint256 private initialPrice;							    //	Стартова цена
-
-    uint256 private highestPrice;							    //	Цената в момента, която е най-висока
-    address payable private highestBidder;		                //	Текущия адрес с най-висока цена
-    bool private isActiveNow;
-    
-    modifier isAuctionActive() {
-        require(isActiveNow, "Auction is not active!");
-        _;
-    }
-    
-    constructor(string memory  _trademarkName,address _owner, uint256  _minBidAmount, uint256  _initialPrice) {
-        trademarkName = _trademarkName;
-        minBidAmount = _minBidAmount;
-        initialPrice = _initialPrice;
-        highestPrice = _initialPrice;
-        highestBidder = payable(_owner);
-        owner=_owner;
-        isActiveNow=false;
-    }
-    
-    event StartAuction(string indexed trademarkName, address indexed owner, uint256 indexed highestPrice, uint256  minBidAmount);
-    event AuctionResult(string indexed trademarkName, address indexed oldOwner, address indexed newOwner,uint256 soldFor);
-
-    function isActive() public view returns(bool){
-    		return isActiveNow;
-    }
-    
-    function getHighestBidder() public view returns(address){
-       return highestBidder;
-    }
-    
-    function start() public  {
-         isActiveNow=true;
-    	 emit StartAuction(trademarkName, owner, highestPrice, minBidAmount); 
-    }
-    
-    
-    function close() public {
-        isActiveNow=false;
-    	if (owner == highestBidder) {
-        	highestPrice = 0;
-        }
-           
-        emit AuctionResult(trademarkName, owner, highestBidder, highestPrice);
-    }
-    
-    function payTo(address payable toAddress, uint256 amount) public payable {
-    	 toAddress.transfer(amount);	 
-    }
-    
-    function bid(address payable bidder, uint256 bidAmount) public payable isAuctionActive {
-       
-        if (minBidAmount <= (bidAmount - highestPrice)) {
-            payTo(highestBidder, highestPrice);
-           	highestPrice = bidAmount;
-           	highestBidder = bidder;
-        }
-        else {
-        	payTo(bidder, bidAmount);
-            //fix maybe with require?
-        }
-    }
-    
-    function getMinBidAmount() external view returns(uint256){
-    		return minBidAmount;
-    }
-
-    function getHighestPrice() external view returns(uint256){
-    		return highestPrice;
-    }
-}
-
-enum Purpose {
-    privateUsage,          //за собствено ползване
-    sale,                  //за продажба
-    freeDistribution       //за свободно разпространение
 }
