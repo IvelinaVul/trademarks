@@ -33,16 +33,24 @@ contract Auction{
     event AuctionResult(string indexed trademarkName, address indexed oldOwner, address indexed newOwner,uint256 soldFor);
 
     function isActive() public view returns(bool){
-    		return isActiveNow;
+    	return isActiveNow;
     }
     
     function getHighestBidder() public view returns(address){
-       return highestBidder;
+        return highestBidder;
+    }
+    
+    function getMinBidAmount() external view returns(uint256){
+    	return minBidAmount;
+    }
+
+    function getHighestPrice() external view returns(uint256){
+    	return highestPrice;
     }
     
     function start() public  {
-         isActiveNow=true;
-    	 emit StartAuction(trademarkName, owner, highestPrice, minBidAmount); 
+        isActiveNow=true;
+    	emit StartAuction(trademarkName, owner, highestPrice, minBidAmount); 
     }
     
     
@@ -55,28 +63,22 @@ contract Auction{
         emit AuctionResult(trademarkName, owner, highestBidder, highestPrice);
     }
     
-    function payTo(address payable toAddress, uint256 amount) public payable {
-    	 toAddress.transfer(amount);	 
-    }
+    // function payTo(address payable toAddress, uint256 amount) public payable {
+    // 	 toAddress.transfer(amount);	 
+    // }
     
     function bid(address payable bidder, uint256 bidAmount) public payable isAuctionActive {
        
         if (minBidAmount <= (bidAmount - highestPrice)) {
-            payTo(highestBidder, highestPrice);
+            // payTo(highestBidder, highestPrice);
+            highestBidder.transfer(highestPrice);
            	highestPrice = bidAmount;
            	highestBidder = bidder;
         }
         else {
-        	payTo(bidder, bidAmount);
-            //fix maybe with require?
+            // payTo(bidder, bidAmount);
+            bidder.transfer(bidAmount);
+            // fix maybe with require?
         }
-    }
-    
-    function getMinBidAmount() external view returns(uint256){
-    		return minBidAmount;
-    }
-
-    function getHighestPrice() external view returns(uint256){
-    		return highestPrice;
     }
 }
