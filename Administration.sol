@@ -126,17 +126,16 @@ contract Administration {
     }
         
     modifier isActiveAuction(string memory trademarkName) {
-    		require(activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
+    		require(address(activeAuctions[trademarkName])!=address(0) && activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
         _;
     }
     
     modifier isNotActiveAuction(string memory trademarkName) {
-    		require(activeAuctions[trademarkName].isActive()  == false, "There is no active auction with that name!");
+    		require(address(activeAuctions[trademarkName])==address(0) || activeAuctions[trademarkName].isActive()  == false, "There is no active auction with that name!");
         _;
     }
   
-    function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) external isOwnerTrademark(trademarkName)  {
-        //fix isNotActiveAuction not working
+    function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) external isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) {
      	Trademark memory trademark = trademarksNames[trademarkName];
      	Auction auction = new Auction(trademark.name, trademark.owner, minBidAmount, initialPrice);
      	activeAuctions[trademarkName] = auction;
@@ -188,7 +187,7 @@ contract Administration {
     	 toAddress.transfer(amount);	 
     }
     
-    function participateInAuction(string memory trademarkName) external payable { 
+    function participateInAuction(string memory trademarkName) external payable isActiveAuction(trademarkName) { 
         Auction auction = activeAuctions[trademarkName];
         auction.bid(msg.sender, msg.value);
     } 
