@@ -52,7 +52,6 @@ contract Administration {
     }
     
     modifier isTrademarkRegistered(string memory trademarkName) {
-        // require(trademarksNames[trademarkName].exists == true, "The trademark is not registered!");
         require(checkAvailableTrademarkName(trademarkName) == false, "The trademark is not registered!");
         _;
     }
@@ -209,7 +208,7 @@ contract Administration {
     
     function participateInAuction(string memory trademarkName) external payable isActiveAuction(trademarkName) { 
         Auction auction = activeAuctions[trademarkName];
-        auction.bid(msg.sender, msg.value);
+        auction.bid{value:msg.value}(msg.sender);
     } 
     
     function isTrademarkInDate(string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns(bool){
@@ -236,7 +235,7 @@ contract Administration {
         }
         delete copyTrademarkNames;
         owner.transfer(msg.value);
-   }
+    }
 
     function isSiteAuthorized(string memory site,string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns (bool){
        for(uint i = 0; i < trademarksNames[trademarkName].authorizedSites.length; ++i) {
