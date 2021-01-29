@@ -1,2 +1,1 @@
-# trademarks
-## It's gonna be scary :'(
+# Trademarks
