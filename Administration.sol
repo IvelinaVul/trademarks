@@ -134,10 +134,10 @@ contract Administration {
     }
     
     function daysUntilAvailableTrademarkName(string memory name) external view returns (uint256) {
-        if(trademarks[name].exists == false) {
+        if(checkAvailableTrademarkName(name)) {
             return 0;
         }
-        return trademarks[name].startDate / 60 / 60 / 24 + trademarks[name].term * 365;
+        return (trademarks[name].startDate / 60 / 60 / 24 + trademarks[name].term * 365) - block.timestamp / 60 / 60 / 24;
     }
         
     function isTrademarkInDate(string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns(bool){
