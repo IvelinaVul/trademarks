@@ -63,22 +63,15 @@ contract Auction{
         emit AuctionResult(trademarkName, owner, highestBidder, highestPrice);
     }
     
-    // function payTo(address payable toAddress, uint256 amount) public payable {
-    // 	 toAddress.transfer(amount);	 
-    // }
-    
-    function bid(address payable bidder, uint256 bidAmount) public payable isAuctionActive {
-       
-        if (minBidAmount <= (bidAmount - highestPrice)) {
-            // payTo(highestBidder, highestPrice);
+    function bid(address payable bidder) public payable isAuctionActive {
+        if (minBidAmount <= (msg.value - highestPrice)) {
             highestBidder.transfer(highestPrice);
-           	highestPrice = bidAmount;
+           	highestPrice = msg.value;
            	highestBidder = bidder;
         }
         else {
-            // payTo(bidder, bidAmount);
-            bidder.transfer(bidAmount);
             // fix maybe with require?
+            payable(bidder).transfer(msg.value);
         }
     }
 }
