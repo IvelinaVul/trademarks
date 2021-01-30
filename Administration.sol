@@ -135,7 +135,7 @@ contract Administration {
         return true;
     }
     
-    function giveUpOnPatent(string memory trademarkName) external payable
+    function giveUpOnPatent(string memory trademarkName) external
                             isOwnerTrademark(trademarkName) futureDate(trademarks[trademarkName].startDate) {
         payable(trademarks[trademarkName].owner).transfer(trademarks[trademarkName].term * priceByYear / 2);
         delete trademarks[trademarkName];
