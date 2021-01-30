@@ -27,15 +27,10 @@ contract Administration {
     
     uint256 constant private priceByYear = 30000000000000000; //40$
     uint256 constant private priceForUpdate = 3000000000000000; //4$
-    uint constant private priceForGiveUp = 11000000000000000; //15$
-    
-    address payable private owner;
-    
     mapping (string => Trademark) private trademarks;
     mapping (string => Auction) activeAuctions;
     
     constructor() {
-        owner = msg.sender;
     }
         
     function getPriceByYear() external pure returns (uint256) {
@@ -88,8 +83,6 @@ contract Administration {
         newTrademark.officialSite = _officialSite;
         
         trademarks[_name] = newTrademark;
-        
-        owner.transfer(msg.value);
     }
     
     modifier futureStartDateTrademark(string memory name) {
@@ -106,31 +99,26 @@ contract Administration {
     
     function extendTerm(string memory trademarkName, uint8 newTerm) external payable isOwnerTrademark(trademarkName) enoughMoney(newTerm * priceByYear) {
         trademarks[trademarkName].term += newTerm;
-        owner.transfer(msg.value);
     }
     
     function updateData(string memory trademarkName, uint256 newStartDate) external payable
                             isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) futureDate(newStartDate) futureStartDateTrademark(trademarkName) {
         trademarks[trademarkName].startDate = newStartDate;
-        owner.transfer(msg.value);
     }
     
     function updateDescription(string memory trademarkName, string memory newDescription) external payable
                                 isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) {
         trademarks[trademarkName].description = newDescription;
-        owner.transfer(msg.value);
     }
     
     function updateCategory(string memory trademarkName, string memory newCategory) external payable
                             isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
         trademarks[trademarkName].category = newCategory;
-        owner.transfer(msg.value);
     }
     
     function updateOfficialSite(string memory trademarkName, string memory newSite) external payable
                                 isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate){
         trademarks[trademarkName].officialSite = newSite;
-        owner.transfer(msg.value);
     }
     
     function daysUntilAvailableTrademarkName(string memory name) external view returns (uint256) {
@@ -146,16 +134,10 @@ contract Administration {
         }
         return true;
     }
-        
-    modifier isOwnerAdministration() {
-        require(msg.sender == owner, "Caller is not owner!");
-        _;
-    }
     
-    //TODO: 50% refund
     function giveUpOnPatent(string memory trademarkName) external payable
-                            isOwnerTrademark(trademarkName) futureDate(trademarks[trademarkName].startDate) enoughMoney(priceForGiveUp) {
-        owner.transfer(msg.value);
+                            isOwnerTrademark(trademarkName) futureDate(trademarks[trademarkName].startDate) {
+        payable(trademarks[trademarkName].owner).transfer(trademarks[trademarkName].term * priceByYear / 2);
         delete trademarks[trademarkName];
     }
 
@@ -176,7 +158,6 @@ contract Administration {
     function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) external payable
                                 isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
         trademarks[trademarkName].authorizedSites.push(authorizedSite);
-        owner.transfer(msg.value);
     }
     
     //*** AUCTIONS ***//
@@ -214,10 +195,6 @@ contract Administration {
 
         address highestBidder=auction.getHighestBidder();
         Trademark memory trademark=trademarks[trademarkName];
-        
-        if (fee > 0) {
-  			owner.transfer(fee);
-        }
        
         payable(trademark.owner).transfer(highestPrice - fee);
     	trademark.owner=highestBidder;
