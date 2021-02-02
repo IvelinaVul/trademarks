@@ -27,6 +27,9 @@ contract Administration {
     
     uint256 constant private priceByYear = 30000000000000000; //40$
     uint256 constant private priceForUpdate = 3000000000000000; //4$
+    uint256 constant private priceForAuthorizedSites = 7000000000000000; //10$
+
+    
     mapping (string => Trademark) private trademarks;
     mapping (string => Auction) activeAuctions;
     
@@ -156,7 +159,10 @@ contract Administration {
     }
 
     function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) external payable
-                                isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
+                             enoughMoney(priceForAuthorizedSites) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
+        if(msg.sender != trademarks[trademarkName].owner) {
+        payable(trademarks[trademarkName].owner).transfer(priceForAuthorizedSites / 3);
+        }
         trademarks[trademarkName].authorizedSites.push(authorizedSite);
     }
     
