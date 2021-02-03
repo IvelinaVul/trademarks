@@ -7,10 +7,10 @@ contract Auction{
     bool private isActiveNow;
     uint256 private minBidAmount;				//	минимална сума за надване
     uint256 private initialPrice;				//	стартова цена
-    uint256 private highestPrice;				//	най-високата цена към момента
+    uint256 private highestPrice;				//  най-високата цена към момента
     
     address private owner;
-    address payable private highestBidder;      //	текущия адрес с най-висока цена
+    address payable private highestBidder;          //  текущия адрес с най-висока цена
     
     string private trademarkName;
     
