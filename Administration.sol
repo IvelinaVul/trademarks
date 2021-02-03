@@ -29,13 +29,14 @@ contract Administration {
     uint256 private priceForUpdate = 3000000000000000; //4$
     uint256 private priceForAuthorizedSites = 7000000000000000; //10$
     
-    address owner;
+    address admin;
     string[] trademarksNames;
     mapping (string => Trademark) private trademarks;
     mapping (string => Auction) activeAuctions;
+    mapping (string => bool) reportedSites;
     
     constructor() {
-        owner = msg.sender;
+        admin = msg.sender;
     }
     
     
@@ -88,13 +89,18 @@ contract Administration {
         _;
     }
     
+    modifier isSiteAuthorizedForTrademark(string memory site, string memory trademarkName) {
+        require(this.isSiteAuthorized(site,trademarkName), "The site hasn't been authorized!");
+        _;
+    }
+    
     modifier isTrademarkRegistered(string memory trademarkName) {
         require(checkAvailableTrademarkName(trademarkName) == false, "The trademark is not registered!");
         _;
     }
     
-    modifier isOwnerAdministration() {
-        require(msg.sender == owner, "Caller is not owner!");
+    modifier notReportedSite(string memory site) {
+        require(reportedSites[site] == false, "The site has been reported!");
         _;
     }
     
@@ -161,7 +167,7 @@ contract Administration {
     }
     
     function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) external payable
-                                enoughMoney(priceForAuthorizedSites) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
+                                enoughMoney(priceForAuthorizedSites) notReportedSite(authorizedSite) isSiteAlreadyAuthorized(authorizedSite, trademarkName) {
         if(msg.sender != trademarks[trademarkName].owner) {
             payable(trademarks[trademarkName].owner).transfer(4 * priceForAuthorizedSites / 5);
         }
@@ -169,12 +175,20 @@ contract Administration {
     }
     
     function isSiteAuthorized(string memory site,string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns (bool){
+       if(reportedSites[site]) {
+            return false;
+       }
        for(uint i = 0; i < trademarks[trademarkName].authorizedSites.length; ++i) {
            if(compareStrings(trademarks[trademarkName].authorizedSites[i],site)) {
                return true;
            }
        }
        return false;
+    }
+    
+    function reportAuthroizedSite(string memory site, string memory trademarkName) external
+                                    isOwnerTrademark(trademarkName) isSiteAuthorizedForTrademark(site, trademarkName) {
+        reportedSites[site] = true;
     }
     
     function compareStrings(string memory a, string memory b) private pure returns (bool) {
@@ -239,20 +253,28 @@ contract Administration {
     
     //*** ADMIN FUNCTIONS ***//
     
+    modifier isAdmin() {
+        require(msg.sender == admin, "Caller is not admin!");
+        _;
+    }
     
-    function setPriceByYear(uint256 newPriceByYear) external isOwnerAdministration {
+    function setPriceByYear(uint256 newPriceByYear) external isAdmin {
         priceByYear = newPriceByYear;
     }
     
-    function setPriceForUpdate(uint256 newPriceForUpdate) external isOwnerAdministration {
+    function setPriceForUpdate(uint256 newPriceForUpdate) external isAdmin {
         priceForUpdate = newPriceForUpdate;
     }
     
-    function setPriceForAuthorizedSites(uint256 newPriceForAuthorizedSites) external isOwnerAdministration {
+    function setPriceForAuthorizedSites(uint256 newPriceForAuthorizedSites) external isAdmin {
         priceForAuthorizedSites = newPriceForAuthorizedSites;
     }
     
-    function clearExpiredPatents() external isOwnerAdministration {
+    function restoreReportedSites(string memory site) external isAdmin {
+        reportedSites[site] = false;
+    }
+    
+    function clearExpiredPatents() external isAdmin {
         clearPatents();
     }
     
