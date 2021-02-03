@@ -25,26 +25,32 @@ contract Administration {
         freeDistribution    //за свободно разпространение
     }
     
-    uint256 constant private priceByYear = 30000000000000000; //40$
-    uint256 constant private priceForUpdate = 3000000000000000; //4$
-    uint256 constant private priceForAuthorizedSites = 7000000000000000; //10$
+    uint256 private priceByYear = 30000000000000000; //40$
+    uint256 private priceForUpdate = 3000000000000000; //4$
+    uint256 private priceForAuthorizedSites = 7000000000000000; //10$
     
+    address owner;
+    string[] trademarksNames;
     mapping (string => Trademark) private trademarks;
     mapping (string => Auction) activeAuctions;
+    
+    constructor() {
+        owner = msg.sender;
+    }
     
     
     //*** PRICES INFORMATION ***//
         
     
-    function getPriceByYear() external pure returns (uint256) {
+    function getPriceByYear() external view returns (uint256) {
         return priceByYear;
     }
     
-    function getPriceForUpdate() external pure returns (uint256) {
+    function getPriceForUpdate() external view returns (uint256) {
         return priceForUpdate;
     }
     
-    function getPriceForSiteAuthorization() external pure returns (uint256) {
+    function getPriceForSiteAuthorization() external view returns (uint256) {
         return priceForAuthorizedSites;
     }
     
@@ -87,6 +93,11 @@ contract Administration {
         _;
     }
     
+    modifier isOwnerAdministration() {
+        require(msg.sender == owner, "Caller is not owner!");
+        _;
+    }
+    
     function registerNewTrademark(string memory _name, string memory _category, string memory _country, uint256 _startDate, uint8 _term, Purpose _purpose,
                                     string memory _description, string memory _officialSite)
                                     external payable nameAvailable(_name) futureDate(_startDate) enoughMoney(_term * priceByYear) {
@@ -104,6 +115,7 @@ contract Administration {
         newTrademark.officialSite = _officialSite;
         
         trademarks[_name] = newTrademark;
+        trademarksNames.push(_name);
     }
     
     function checkAvailableTrademarkName(string memory name) public view returns (bool) {
@@ -172,6 +184,7 @@ contract Administration {
     function giveUpOnPatent(string memory trademarkName) external isOwnerTrademark(trademarkName) futureStartDateTrademark(trademarkName) {
         payable(trademarks[trademarkName].owner).transfer(trademarks[trademarkName].term * priceByYear / 2);
         delete trademarks[trademarkName];
+        clearPatents();
     }
 
     
@@ -221,5 +234,43 @@ contract Administration {
         payable(trademark.owner).transfer(highestPrice - fee);
     	trademark.owner=highestBidder;
         delete activeAuctions[trademarkName];
+    }
+    
+    
+    //*** ADMIN FUNCTIONS ***//
+    
+    
+    function setPriceByYear(uint256 newPriceByYear) external isOwnerAdministration {
+        priceByYear = newPriceByYear;
+    }
+    
+    function setPriceForUpdate(uint256 newPriceForUpdate) external isOwnerAdministration {
+        priceForUpdate = newPriceForUpdate;
+    }
+    
+    function setPriceForAuthorizedSites(uint256 newPriceForAuthorizedSites) external isOwnerAdministration {
+        priceForAuthorizedSites = newPriceForAuthorizedSites;
+    }
+    
+    function clearExpiredPatents() external isOwnerAdministration {
+        clearPatents();
+    }
+    
+    function clearPatents() private {
+        string[] memory allTrademarksNames = new string[](trademarksNames.length);
+        for(uint i = 0; i < trademarksNames.length; ++i) {
+            allTrademarksNames[i] = trademarksNames[i];
+        }
+        delete trademarksNames;
+        
+        for(uint i = 0; i < allTrademarksNames.length; ++i) {
+            if(checkAvailableTrademarkName(allTrademarksNames[i])) {
+                delete trademarks[allTrademarksNames[i]];
+            } else {
+                trademarksNames.push(allTrademarksNames[i]);
+            }
+        }
+
+        delete allTrademarksNames;
     }
 }
