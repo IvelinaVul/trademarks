@@ -54,13 +54,12 @@ contract Auction{
     }
     
     function bid(address payable bidder) external payable isAuctionActive {
-        if (minBidAmount <= (msg.value - highestPrice)) {
-            highestBidder.transfer(highestPrice);
+        if (minBidAmount <= (msg.value - highestPrice)) {                   // Successful bid
+            highestBidder.transfer(highestPrice);                           // Returns the money of last bidder
            	highestPrice = msg.value;
            	highestBidder = bidder;
         }
-        else {
-            // fix maybe with require?
+        else {                                                              // Unsuccessful bid then returns the money to the bidder
             payable(bidder).transfer(msg.value);
         }
     }
