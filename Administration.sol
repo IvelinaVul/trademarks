@@ -9,33 +9,33 @@ contract Administration {
     struct Trademark {
         bool exists;
         string name;
-        uint8 term;                 //в години
+        uint8 term;             //в години
         uint256 startDate;
         address owner;
-        string category;            //продукт / услуги
+        string category;        //продукт / услуги
         string country;
         string description;
         string  officialSite;
-        Purpose purpose;            //цел: за собствено ползване / за продажба / за свободно разпространение
+        Purpose purpose;
         string[] authorizedSites;
     }
     enum Purpose {
-        privateUsage,          //за собствено ползване
-        sale,                  //за продажба
-        freeDistribution       //за свободно разпространение
+        privateUsage,       //за собствено ползване
+        sale,               //за продажба
+        freeDistribution    //за свободно разпространение
     }
     
     uint256 constant private priceByYear = 30000000000000000; //40$
     uint256 constant private priceForUpdate = 3000000000000000; //4$
     uint256 constant private priceForAuthorizedSites = 7000000000000000; //10$
-
     
     mapping (string => Trademark) private trademarks;
     mapping (string => Auction) activeAuctions;
     
-    constructor() {
-    }
+    
+    //*** PRICES INFORMATION ***//
         
+    
     function getPriceByYear() external pure returns (uint256) {
         return priceByYear;
     }
@@ -44,18 +44,16 @@ contract Administration {
         return priceForUpdate;
     }
     
-    modifier isOwnerTrademark(string memory trademarkName) {
-        require(msg.sender == trademarks[trademarkName].owner, "Caller is not owner!");
-        _;
+    function getPriceForSiteAuthorization() external pure returns (uint256) {
+        return priceForAuthorizedSites;
     }
+    
+    
+    //*** TRADEMARKS ***//
+    
     
     modifier nameAvailable(string memory name) {
     	require(checkAvailableTrademarkName(name), "The name already exists!");
-        _;
-    }
-    
-    modifier isTrademarkRegistered(string memory trademarkName) {
-        require(checkAvailableTrademarkName(trademarkName) == false, "The trademark is not registered!");
         _;
     }
     
@@ -67,6 +65,26 @@ contract Administration {
     modifier enoughMoney(uint256 amount) {
         require(msg.value >= amount, "Not enough money!"); 
         _; 
+    }
+    
+    modifier isOwnerTrademark(string memory trademarkName) {
+        require(msg.sender == trademarks[trademarkName].owner, "Caller is not owner!");
+        _;
+    }
+    
+    modifier futureStartDateTrademark(string memory name) {
+        require(block.timestamp <= trademarks[name].startDate, "Invalid start date!");
+        _; 
+    }
+    
+    modifier isSiteAlreadyAuthorized(string memory site,string memory trademarkName) {
+        require(this.isSiteAuthorized(site,trademarkName) == false, "The site has been authorized!");
+        _;
+    }
+    
+    modifier isTrademarkRegistered(string memory trademarkName) {
+        require(checkAvailableTrademarkName(trademarkName) == false, "The trademark is not registered!");
+        _;
     }
     
     function registerNewTrademark(string memory _name, string memory _category, string memory _country, uint256 _startDate, uint8 _term, Purpose _purpose,
@@ -88,11 +106,6 @@ contract Administration {
         trademarks[_name] = newTrademark;
     }
     
-    modifier futureStartDateTrademark(string memory name) {
-        require(block.timestamp <= trademarks[name].startDate, "Not enough money!");
-        _; 
-    }
-    
     function checkAvailableTrademarkName(string memory name) public view returns (bool) {
         if(trademarks[name].exists == false) {
             return true;
@@ -100,13 +113,19 @@ contract Administration {
         return block.timestamp > trademarks[name].startDate + trademarks[name].term * 365 * 24 * 60 * 60;
     }
     
-    function extendTerm(string memory trademarkName, uint8 newTerm) external payable isOwnerTrademark(trademarkName) enoughMoney(newTerm * priceByYear) {
-        trademarks[trademarkName].term += newTerm;
+    function isTrademarkInDate(string memory trademarkName) external view isTrademarkRegistered(trademarkName) returns(bool){
+        return block.timestamp >= trademarks[trademarkName].startDate;
     }
     
-    function updateData(string memory trademarkName, uint256 newStartDate) external payable
-                            isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) futureDate(newStartDate) futureStartDateTrademark(trademarkName) {
-        trademarks[trademarkName].startDate = newStartDate;
+    function daysUntilAvailableTrademarkName(string memory name) external view returns (uint256) {
+        if(checkAvailableTrademarkName(name)) {
+            return 0;
+        }
+        return (trademarks[name].startDate / 60 / 60 / 24 + trademarks[name].term * 365) - block.timestamp / 60 / 60 / 24;
+    }
+    
+    function extendTerm(string memory trademarkName, uint8 newTerm) external payable isOwnerTrademark(trademarkName) enoughMoney(newTerm * priceByYear) {
+        trademarks[trademarkName].term += newTerm;
     }
     
     function updateDescription(string memory trademarkName, string memory newDescription) external payable
@@ -124,26 +143,19 @@ contract Administration {
         trademarks[trademarkName].officialSite = newSite;
     }
     
-    function daysUntilAvailableTrademarkName(string memory name) external view returns (uint256) {
-        if(checkAvailableTrademarkName(name)) {
-            return 0;
-        }
-        return (trademarks[name].startDate / 60 / 60 / 24 + trademarks[name].term * 365) - block.timestamp / 60 / 60 / 24;
-    }
-        
-    function isTrademarkInDate(string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns(bool){
-        if(block.timestamp < trademarks[trademarkName].startDate) {
-            return false;
-        }
-        return true;
+    function updateStartData(string memory trademarkName, uint256 newStartDate) external payable
+                            isOwnerTrademark(trademarkName) enoughMoney(priceForUpdate) futureDate(newStartDate) futureStartDateTrademark(trademarkName) {
+        trademarks[trademarkName].startDate = newStartDate;
     }
     
-    function giveUpOnPatent(string memory trademarkName) external
-                            isOwnerTrademark(trademarkName) futureDate(trademarks[trademarkName].startDate) {
-        payable(trademarks[trademarkName].owner).transfer(trademarks[trademarkName].term * priceByYear / 2);
-        delete trademarks[trademarkName];
+    function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) external payable
+                                enoughMoney(priceForAuthorizedSites) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
+        if(msg.sender != trademarks[trademarkName].owner) {
+            payable(trademarks[trademarkName].owner).transfer(4 * priceForAuthorizedSites / 5);
+        }
+        trademarks[trademarkName].authorizedSites.push(authorizedSite);
     }
-
+    
     function isSiteAuthorized(string memory site,string memory trademarkName) public view isTrademarkRegistered(trademarkName) returns (bool){
        for(uint i = 0; i < trademarks[trademarkName].authorizedSites.length; ++i) {
            if(compareStrings(trademarks[trademarkName].authorizedSites[i],site)) {
@@ -152,48 +164,52 @@ contract Administration {
        }
        return false;
     }
-
-    modifier isSiteAlreadyAuthorized(string memory site,string memory trademarkName) {
-        require(this.isSiteAuthorized(site,trademarkName)==false, "The site has been authorized!");
-        _;
-    }
-
-    function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) external payable
-                             enoughMoney(priceForAuthorizedSites) isSiteAlreadyAuthorized(authorizedSite,trademarkName){
-        if(msg.sender != trademarks[trademarkName].owner) {
-        payable(trademarks[trademarkName].owner).transfer(priceForAuthorizedSites / 3);
-        }
-        trademarks[trademarkName].authorizedSites.push(authorizedSite);
-    }
-    
-    //*** AUCTIONS ***//
-        
-    modifier isActiveAuction(string memory trademarkName) {
-    	require(address(activeAuctions[trademarkName])!=address(0) && activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
-        _;
-    }
-    
-    modifier isNotActiveAuction(string memory trademarkName) {
-    	require(address(activeAuctions[trademarkName])==address(0) || activeAuctions[trademarkName].isActive()  == false, "There is no active auction with that name!");
-        _;
-    }
-  
-    function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) external isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) {
-     	Trademark memory trademark = trademarks[trademarkName];
-     	Auction auction = new Auction(trademark.name, trademark.owner, minBidAmount, initialPrice);
-     	activeAuctions[trademarkName] = auction;
-        auction.start();
-    }
     
     function compareStrings(string memory a, string memory b) private pure returns (bool) {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
     }
     
-    function deleteAuction(string memory trademarkName) private {
-    	delete activeAuctions[trademarkName];
+    function giveUpOnPatent(string memory trademarkName) external isOwnerTrademark(trademarkName) futureStartDateTrademark(trademarkName) {
+        payable(trademarks[trademarkName].owner).transfer(trademarks[trademarkName].term * priceByYear / 2);
+        delete trademarks[trademarkName];
+    }
+
+    
+    //*** AUCTIONS ***//
+        
+    
+    modifier isNotActiveAuction(string memory trademarkName) {
+    	require(address(activeAuctions[trademarkName])==address(0) || activeAuctions[trademarkName].isActive() == false, "There is no active auction with that name!");
+        _;
     }
     
-    function closeAuction(string memory trademarkName) external isActiveAuction(trademarkName) isOwnerTrademark(trademarkName) {
+    modifier isActiveAuction(string memory trademarkName) {
+    	require(address(activeAuctions[trademarkName])!=address(0) && activeAuctions[trademarkName].isActive(), "There is no active auction with that name!");
+        _;
+    }
+        
+    function createAuction(string memory trademarkName, uint128 initialPrice, uint128 minBidAmount) external
+                            isOwnerTrademark(trademarkName) isNotActiveAuction(trademarkName) {
+     	Trademark memory trademark = trademarks[trademarkName];
+     	Auction auction = new Auction(trademark.name, trademark.owner, minBidAmount, initialPrice);
+     	activeAuctions[trademarkName] = auction;
+        auction.start();
+    }    
+        
+    function activeAuctionForTrademark(string memory trademarkName) external view returns (bool) {
+        return address(activeAuctions[trademarkName])!=address(0) && activeAuctions[trademarkName].isActive();
+    }
+    
+    function getCurrentMinAllowedBidForTrademark(string memory trademarkName) external view isActiveAuction(trademarkName) returns (uint256) {
+        return activeAuctions[trademarkName].getCurrentMinAllowedBid();
+    }
+    
+    function participateInAuction(string memory trademarkName) external payable isActiveAuction(trademarkName) { 
+        Auction auction = activeAuctions[trademarkName];
+        auction.bid{value:msg.value}(msg.sender);
+    }
+        
+    function closeAuction(string memory trademarkName) external isOwnerTrademark(trademarkName) isActiveAuction(trademarkName) {
         Auction auction = activeAuctions[trademarkName];
         auction.close();
         uint256 highestPrice=auction.getHighestPrice();
@@ -204,11 +220,6 @@ contract Administration {
        
         payable(trademark.owner).transfer(highestPrice - fee);
     	trademark.owner=highestBidder;
-        deleteAuction(trademarkName);
+        delete activeAuctions[trademarkName];
     }
-    
-    function participateInAuction(string memory trademarkName) external payable isActiveAuction(trademarkName) { 
-        Auction auction = activeAuctions[trademarkName];
-        auction.bid{value:msg.value}(msg.sender);
-    } 
 }
