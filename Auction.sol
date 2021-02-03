@@ -10,7 +10,7 @@ contract Auction{
     uint256 private highestPrice;				//	най-високата цена към момента
     
     address private owner;
-    address payable private highestBidder;		//	текущия адрес с най-висока цена
+    address payable private highestBidder;      //	текущия адрес с най-висока цена
     
     string private trademarkName;
     
