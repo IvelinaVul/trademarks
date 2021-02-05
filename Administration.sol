@@ -25,8 +25,8 @@ contract Administration {
         freeDistribution    //за свободно разпространение
     }
     
-    uint256 private priceByYear = 30000000000000000; //40$
-    uint256 private priceForUpdate = 3000000000000000; //4$
+    uint256 private priceByYear = 12000000000000000; //20$
+    uint256 private priceForUpdate = 7000000000000000; //10$
     uint256 private priceForAuthorizedSites = 7000000000000000; //10$
     
     address private admin;
@@ -114,7 +114,7 @@ contract Administration {
         newTrademark.category = _category;
         newTrademark.country = _country;
         newTrademark.startDate = _startDate;
-        newTrademark.term = _term;
+        newTrademark.term = _term * 10;
         newTrademark.purpose = _purpose;
         newTrademark.description = _description;
         newTrademark.owner = msg.sender;
