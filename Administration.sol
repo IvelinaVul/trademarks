@@ -32,8 +32,8 @@ contract Administration {
     address admin;
     string[] trademarksNames;
     mapping (string => Trademark) private trademarks;
-    mapping (string => Auction) activeAuctions;
-    mapping (string => bool) reportedSites;
+    mapping (string => Auction) private activeAuctions;
+    mapping (string => bool) private reportedSites;
     
     constructor() {
         admin = msg.sender;
