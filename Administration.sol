@@ -29,8 +29,8 @@ contract Administration {
     uint256 private priceForUpdate = 3000000000000000; //4$
     uint256 private priceForAuthorizedSites = 7000000000000000; //10$
     
-    address admin;
-    string[] trademarksNames;
+    address private admin;
+    string[] private trademarksNames;
     mapping (string => Trademark) private trademarks;
     mapping (string => Auction) private activeAuctions;
     mapping (string => bool) private reportedSites;
