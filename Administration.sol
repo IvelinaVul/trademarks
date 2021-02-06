@@ -143,7 +143,7 @@ contract Administration {
     }
     
     function extendTerm(string memory trademarkName, uint8 newTerm) external payable isOwnerTrademark(trademarkName) enoughMoney(newTerm * priceByYear) {
-        trademarks[trademarkName].term += newTerm;
+        trademarks[trademarkName].term += newTerm * 10;
     }
     
     function updateDescription(string memory trademarkName, string memory newDescription) external payable
