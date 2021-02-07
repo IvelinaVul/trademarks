@@ -7,10 +7,10 @@ contract Auction{
     bool private isActiveNow;
     uint256 private minBidAmount;				//	минимална сума за надване
     uint256 private initialPrice;				//	стартова цена
-    uint256 private highestPrice;				//  най-високата цена към момента
+    uint256 private highestPrice;               //  най-високата цена към момента
     
     address private owner;
-    address payable private highestBidder;          //  текущия адрес с най-висока цена
+    address payable private highestBidder;      //  текущия адрес с най-висока цена
     
     string private trademarkName;
     
@@ -55,9 +55,11 @@ contract Auction{
     
     function bid(address payable bidder) external payable isAuctionActive {
         if (minBidAmount <= (msg.value - highestPrice)) {                   // Successful bid
-            highestBidder.transfer(highestPrice);                           // Returns the money of last bidder
-           	highestPrice = msg.value;
-           	highestBidder = bidder;
+            if (owner != highestBidder) {
+                highestBidder.transfer(highestPrice);                       // Returns the money of last bidder
+            }
+            highestPrice = msg.value;
+            highestBidder = bidder;
         }
         else {                                                              // Unsuccessful bid then returns the money to the bidder
             payable(bidder).transfer(msg.value);
@@ -67,7 +69,7 @@ contract Auction{
     function close() external {
         isActiveNow = false;
     	if (owner == highestBidder) {
-        	highestPrice = 0;
+            highestPrice = 0;
         }
            
         emit AuctionResult(trademarkName, owner, highestBidder, highestPrice);
