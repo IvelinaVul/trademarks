@@ -168,9 +168,7 @@ contract Administration {
     
     function addAuthroizedSite(string memory authorizedSite,string memory trademarkName) external payable
                                 enoughMoney(priceForAuthorizedSites) notReportedSite(authorizedSite) isSiteAlreadyAuthorized(authorizedSite, trademarkName) {
-        if(msg.sender != trademarks[trademarkName].owner) {
-            payable(trademarks[trademarkName].owner).transfer(4 * priceForAuthorizedSites / 5);
-        }
+        payable(trademarks[trademarkName].owner).transfer(4 * priceForAuthorizedSites / 5);
         trademarks[trademarkName].authorizedSites.push(authorizedSite);
     }
     
